@@ -158,6 +158,13 @@ class ExecutionAgentLogStore:
         entries = list(self.iter_entries(agent_name))
         return entries[-limit:] if entries else []
 
+    def load_latest_request(self, agent_name: str) -> Optional[str]:
+        """Return the most recently recorded instruction for an agent."""
+        for tag, _, payload in reversed(list(self.iter_entries(agent_name))):
+            if tag == "agent_request":
+                return payload
+        return None
+
     def list_agents(self) -> list[str]:
         """List all agents with logs."""
         try:
