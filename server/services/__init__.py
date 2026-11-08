@@ -13,10 +13,13 @@ from .execution import (
     AgentProfileStore,
     AgentRoster,
     ExecutionAgentLogStore,
+    EmbeddingError,
+    embed_text,
     get_agent_profile_store,
     get_agent_roster,
     get_execution_agent_logs,
     get_or_backfill_agent_profile,
+    update_agent_profile_embedding,
 )
 from .gmail import (
     GmailSeenStore,
@@ -45,6 +48,9 @@ __all__ = [
     "ExecutionAgentLogStore",
     "AgentProfile",
     "AgentProfileStore",
+    "EmbeddingError",
+    "embed_text",
+    "update_agent_profile_embedding",
     "get_agent_roster",
     "get_execution_agent_logs",
     "get_agent_profile_store",

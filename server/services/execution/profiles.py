@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+import math
 import sqlite3
 import threading
 from contextlib import closing
@@ -25,6 +27,9 @@ class AgentProfile:
     agent_name: str
     instruction: str
     last_active_at: str
+    embedding: Optional[list[float]] = None
+    embedding_model: Optional[str] = None
+    embedding_dimensions: Optional[int] = None
 
 
 class AgentProfileStore:
@@ -49,10 +54,40 @@ class AgentProfileStore:
                 CREATE TABLE IF NOT EXISTS agent_profiles (
                     agent_name TEXT PRIMARY KEY,
                     instruction TEXT NOT NULL,
-                    last_active_at TEXT NOT NULL
+                    last_active_at TEXT NOT NULL,
+                    embedding_json TEXT,
+                    embedding_model TEXT,
+                    embedding_dimensions INTEGER
                 )
                 """
             )
+            columns = {
+                row["name"] for row in conn.execute("PRAGMA table_info(agent_profiles)")
+            }
+            for column, column_type in (
+                ("embedding_json", "TEXT"),
+                ("embedding_model", "TEXT"),
+                ("embedding_dimensions", "INTEGER"),
+            ):
+                if column not in columns:
+                    conn.execute(
+                        f"ALTER TABLE agent_profiles ADD COLUMN {column} {column_type}"
+                    )
+
+    @staticmethod
+    def _row_to_profile(row: sqlite3.Row) -> AgentProfile:
+        embedding_json = row["embedding_json"]
+        embedding = json.loads(embedding_json) if embedding_json else None
+        if embedding is not None and not isinstance(embedding, list):
+            raise ValueError("stored profile embedding is not a vector")
+        return AgentProfile(
+            agent_name=row["agent_name"],
+            instruction=row["instruction"],
+            last_active_at=row["last_active_at"],
+            embedding=embedding,
+            embedding_model=row["embedding_model"],
+            embedding_dimensions=row["embedding_dimensions"],
+        )
 
     @staticmethod
     def _normalize_instruction(instruction: str) -> str:
@@ -66,11 +101,12 @@ class AgentProfileStore:
         """Return a stored profile, if one exists."""
         with self._lock, closing(self._connect()) as conn:
             row = conn.execute(
-                "SELECT agent_name, instruction, last_active_at "
+                "SELECT agent_name, instruction, last_active_at, embedding_json, "
+                "embedding_model, embedding_dimensions "
                 "FROM agent_profiles WHERE agent_name = ?",
                 (agent_name,),
             ).fetchone()
-        return AgentProfile(**dict(row)) if row else None
+        return self._row_to_profile(row) if row else None
 
     def upsert(self, agent_name: str, instruction: str) -> AgentProfile:
         """Create or refresh a profile using the latest delegated instruction."""
@@ -91,7 +127,10 @@ class AgentProfileStore:
                 VALUES (?, ?, ?)
                 ON CONFLICT(agent_name) DO UPDATE SET
                     instruction = excluded.instruction,
-                    last_active_at = excluded.last_active_at
+                    last_active_at = excluded.last_active_at,
+                    embedding_json = NULL,
+                    embedding_model = NULL,
+                    embedding_dimensions = NULL
                 """,
                 (agent_name, bounded_instruction, last_active_at),
             )
@@ -123,12 +162,46 @@ class AgentProfileStore:
                 (agent_name, bounded_instruction, last_active_at),
             )
             row = conn.execute(
-                "SELECT agent_name, instruction, last_active_at "
+                "SELECT agent_name, instruction, last_active_at, embedding_json, "
+                "embedding_model, embedding_dimensions "
                 "FROM agent_profiles WHERE agent_name = ?",
                 (agent_name,),
             ).fetchone()
 
-        return AgentProfile(**dict(row)) if row else None
+        return self._row_to_profile(row) if row else None
+
+    def update_embedding(
+        self,
+        agent_name: str,
+        instruction: str,
+        model: str,
+        embedding: list[float],
+    ) -> bool:
+        """Store a vector only if the profile still has the embedded instruction."""
+        if not model.strip():
+            raise ValueError("model must not be empty")
+        if not embedding or not all(
+            isinstance(value, (int, float)) and math.isfinite(value)
+            for value in embedding
+        ):
+            raise ValueError("embedding must contain finite numeric values")
+
+        with self._lock, closing(self._connect()) as conn:
+            cursor = conn.execute(
+                """
+                UPDATE agent_profiles
+                SET embedding_json = ?, embedding_model = ?, embedding_dimensions = ?
+                WHERE agent_name = ? AND instruction = ?
+                """,
+                (
+                    json.dumps(embedding, separators=(",", ":")),
+                    model,
+                    len(embedding),
+                    agent_name,
+                    self._normalize_instruction(instruction),
+                ),
+            )
+        return cursor.rowcount > 0
 
     def clear_all(self) -> None:
         """Remove all derived agent profiles."""

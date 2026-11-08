@@ -1,3 +1,4 @@
+import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
@@ -68,6 +69,56 @@ class AgentProfileStoreTests(unittest.TestCase):
         self.store.clear_all()
 
         self.assertIsNone(self.store.get("Agent"))
+
+    def test_existing_profile_table_is_upgraded_for_embeddings(self) -> None:
+        legacy_path = Path(self._temporary_directory.name) / "legacy.sqlite"
+        with sqlite3.connect(legacy_path) as connection:
+            connection.execute(
+                """
+                CREATE TABLE agent_profiles (
+                    agent_name TEXT PRIMARY KEY,
+                    instruction TEXT NOT NULL,
+                    last_active_at TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                "INSERT INTO agent_profiles VALUES (?, ?, ?)",
+                ("Legacy agent", "Legacy task", "2026-01-01T00:00:00+00:00"),
+            )
+
+        upgraded_store = AgentProfileStore(legacy_path)
+        profile = upgraded_store.get("Legacy agent")
+
+        self.assertEqual(profile.instruction, "Legacy task")
+        self.assertIsNone(profile.embedding)
+
+    def test_embedding_is_persisted_only_for_current_instruction(self) -> None:
+        self.store.upsert("Agent", "Current task")
+        saved = self.store.update_embedding(
+            "Agent", "Stale task", "test/model", [0.1, 0.2]
+        )
+        self.assertFalse(saved)
+
+        saved = self.store.update_embedding(
+            "Agent", "Current task", "test/model", [0.1, 0.2]
+        )
+        profile = self.store.get("Agent")
+
+        self.assertTrue(saved)
+        self.assertEqual(profile.embedding, [0.1, 0.2])
+        self.assertEqual(profile.embedding_model, "test/model")
+        self.assertEqual(profile.embedding_dimensions, 2)
+
+    def test_instruction_update_invalidates_embedding(self) -> None:
+        self.store.upsert("Agent", "Old task")
+        self.store.update_embedding("Agent", "Old task", "test/model", [0.1])
+
+        profile = self.store.upsert("Agent", "New task")
+
+        self.assertIsNone(profile.embedding)
+        self.assertIsNone(profile.embedding_model)
+        self.assertIsNone(profile.embedding_dimensions)
 
 
 if __name__ == "__main__":

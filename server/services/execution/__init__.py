@@ -1,5 +1,6 @@
 """Execution agent support services."""
 
+from .embeddings import EmbeddingError, embed_text, update_agent_profile_embedding
 from .log_store import ExecutionAgentLogStore, get_execution_agent_logs
 from .profiles import (
     AgentProfile,
@@ -12,6 +13,9 @@ from .roster import AgentRoster, get_agent_roster
 __all__ = [
     "ExecutionAgentLogStore",
     "get_execution_agent_logs",
+    "EmbeddingError",
+    "embed_text",
+    "update_agent_profile_embedding",
     "AgentProfile",
     "AgentProfileStore",
     "get_agent_profile_store",
