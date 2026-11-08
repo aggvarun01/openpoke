@@ -9,6 +9,12 @@ from .profiles import (
     get_or_backfill_agent_profile,
 )
 from .roster import AgentRoster, get_agent_roster
+from .retrieval import (
+    MAX_AGENT_CANDIDATES,
+    AgentCandidate,
+    AgentRetrievalResult,
+    retrieve_agents,
+)
 
 __all__ = [
     "ExecutionAgentLogStore",
@@ -20,6 +26,10 @@ __all__ = [
     "AgentProfileStore",
     "get_agent_profile_store",
     "get_or_backfill_agent_profile",
+    "MAX_AGENT_CANDIDATES",
+    "AgentCandidate",
+    "AgentRetrievalResult",
+    "retrieve_agents",
     "AgentRoster",
     "get_agent_roster",
 ]
