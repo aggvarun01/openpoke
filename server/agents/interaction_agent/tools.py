@@ -1,13 +1,19 @@
 """Tool definitions for interaction agent."""
 
 import asyncio
+
+import asyncio
 import json
 from dataclasses import dataclass
 from typing import Any, Optional
 
 from ...logging_config import logger
 from ...services.conversation import get_conversation_log
-from ...services.execution import get_agent_roster, get_execution_agent_logs
+from ...services.execution import (
+    get_agent_profile_store,
+    get_agent_roster,
+    get_execution_agent_logs,
+)
 from ..execution_agent.batch_manager import ExecutionBatchManager
 
 
@@ -124,6 +130,19 @@ def send_message_to_agent(agent_name: str, instructions: str) -> ToolResult:
     action = "Created" if is_new else "Reused"
     logger.info(f"{action} agent: {agent_name}")
 
+    async def _update_profile_async() -> None:
+        def _upsert_profile() -> None:
+            get_agent_profile_store().upsert(agent_name, instructions)
+
+        try:
+            await asyncio.to_thread(_upsert_profile)
+        except Exception as exc:
+            logger.error(
+                "agent profile update failed",
+                extra={"agent_name": agent_name, "error": str(exc)},
+            )
+            return
+
     async def _execute_async() -> None:
         try:
             result = await _EXECUTION_BATCH_MANAGER.execute_agent(agent_name, instructions)
@@ -138,6 +157,7 @@ def send_message_to_agent(agent_name: str, instructions: str) -> ToolResult:
         logger.error("No running event loop available for async execution")
         return ToolResult(success=False, payload={"error": "No event loop available"})
 
+    loop.create_task(_update_profile_async())
     loop.create_task(_execute_async())
 
     return ToolResult(

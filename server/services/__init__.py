@@ -8,7 +8,16 @@ from .conversation import (
     schedule_summarization,
 )
 from .conversation.chat_handler import handle_chat_request
-from .execution import AgentRoster, ExecutionAgentLogStore, get_agent_roster, get_execution_agent_logs
+from .execution import (
+    AgentProfile,
+    AgentProfileStore,
+    AgentRoster,
+    ExecutionAgentLogStore,
+    get_agent_profile_store,
+    get_agent_roster,
+    get_execution_agent_logs,
+    get_or_backfill_agent_profile,
+)
 from .gmail import (
     GmailSeenStore,
     ImportantEmailWatcher,
@@ -34,8 +43,12 @@ __all__ = [
     "schedule_summarization",
     "AgentRoster",
     "ExecutionAgentLogStore",
+    "AgentProfile",
+    "AgentProfileStore",
     "get_agent_roster",
     "get_execution_agent_logs",
+    "get_agent_profile_store",
+    "get_or_backfill_agent_profile",
     "GmailSeenStore",
     "ImportantEmailWatcher",
     "classify_email_importance",
