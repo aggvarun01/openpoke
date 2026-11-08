@@ -124,6 +124,7 @@ class ExecutionBatchManager:
         """Record the execution result and dispatch when the batch drains."""
 
         dispatch_payload: Optional[str] = None
+        dispatch_agent_names: List[str] = []
 
         async with self._batch_lock:
             state = self._batch_state
@@ -136,12 +137,17 @@ class ExecutionBatchManager:
 
             if state.pending == 0:
                 dispatch_payload = self._format_batch_payload(state.results)
-                agent_names = [entry.agent_name for entry in state.results]
-                logger.info(f"Execution batch completed: {', '.join(agent_names)}")
+                dispatch_agent_names = [entry.agent_name for entry in state.results]
+                logger.info(
+                    f"Execution batch completed: {', '.join(dispatch_agent_names)}"
+                )
                 self._batch_state = None
 
         if dispatch_payload:
-            await self._dispatch_to_interaction_agent(dispatch_payload)
+            await self._dispatch_to_interaction_agent(
+                dispatch_payload,
+                originating_agent_names=dispatch_agent_names,
+            )
 
     # Return list of currently pending execution requests for monitoring purposes
     def get_pending_executions(self) -> List[Dict[str, str]]:
@@ -178,7 +184,11 @@ class ExecutionBatchManager:
         return "\n".join(entries)
 
     # Forward combined execution results to interaction agent for user response generation
-    async def _dispatch_to_interaction_agent(self, payload: str) -> None:
+    async def _dispatch_to_interaction_agent(
+        self,
+        payload: str,
+        originating_agent_names: Optional[List[str]] = None,
+    ) -> None:
         """Send the aggregated execution summary to the interaction agent."""
 
         from ..interaction_agent.runtime import InteractionAgentRuntime
@@ -187,7 +197,17 @@ class ExecutionBatchManager:
         try:
             loop = asyncio.get_running_loop()
         except RuntimeError:
-            asyncio.run(runtime.handle_agent_message(payload))
+            asyncio.run(
+                runtime.handle_agent_message(
+                    payload,
+                    originating_agent_names=originating_agent_names,
+                )
+            )
             return
 
-        loop.create_task(runtime.handle_agent_message(payload))
+        loop.create_task(
+            runtime.handle_agent_message(
+                payload,
+                originating_agent_names=originating_agent_names,
+            )
+        )
