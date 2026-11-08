@@ -73,6 +73,19 @@ OpenPoke is a simplified, open-source take on [Interaction Company’s](https://
 
 The web app proxies API calls to the Python server using the values in `.env`, so keeping both processes running is required for end-to-end flows.
 
+### Execution Agent retrieval
+
+Execution Agent retrieval uses OpenRouter's embeddings endpoint with
+`openai/text-embedding-3-small` by default. Override the model with
+`EXECUTION_AGENT_EMBEDDING_MODEL` if needed. The existing `OPENROUTER_API_KEY`
+is used; no additional provider credential is required.
+
+Retrieval sends the latest user message and each bounded Execution Agent profile
+(agent name and delegated-instruction excerpt) to OpenRouter. Do not enable this
+feature if that text should remain local. Provider availability, applicable data
+retention, and current pricing depend on OpenRouter and its selected provider;
+check their current policies and model pricing before use.
+
 ## Project Layout
 - `server/` – FastAPI application and agents
 - `web/` – Next.js app

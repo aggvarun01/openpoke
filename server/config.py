@@ -54,6 +54,12 @@ class Settings(BaseModel):
     interaction_agent_model: str = Field(default="anthropic/claude-sonnet-4")
     execution_agent_model: str = Field(default="anthropic/claude-sonnet-4")
     execution_agent_search_model: str = Field(default="anthropic/claude-sonnet-4")
+    execution_agent_embedding_model: str = Field(
+        default=os.getenv(
+            "EXECUTION_AGENT_EMBEDDING_MODEL",
+            "openai/text-embedding-3-small",
+        )
+    )
     summarizer_model: str = Field(default="anthropic/claude-sonnet-4")
     email_classifier_model: str = Field(default="anthropic/claude-sonnet-4")
 

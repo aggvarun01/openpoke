@@ -1,8 +1,6 @@
 """Tool definitions for interaction agent."""
 
 import asyncio
-
-import asyncio
 import json
 from dataclasses import dataclass
 from typing import Any, Optional
@@ -13,6 +11,7 @@ from ...services.execution import (
     get_agent_profile_store,
     get_agent_roster,
     get_execution_agent_logs,
+    update_agent_profile_embedding,
 )
 from ..execution_agent.batch_manager import ExecutionBatchManager
 
@@ -142,6 +141,8 @@ def send_message_to_agent(agent_name: str, instructions: str) -> ToolResult:
                 extra={"agent_name": agent_name, "error": str(exc)},
             )
             return
+
+        await update_agent_profile_embedding(agent_name, instructions)
 
     async def _execute_async() -> None:
         try:
