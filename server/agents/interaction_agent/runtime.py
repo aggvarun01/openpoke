@@ -8,6 +8,7 @@ from .agent import build_system_prompt, prepare_message_with_history
 from .tools import ToolResult, get_tool_schemas, handle_tool_call
 from ...config import get_settings
 from ...services.conversation import get_conversation_log, get_working_memory_log
+from ...services.execution import AgentRetrievalResult, retrieve_agents
 from ...openrouter_client import request_chat_completion
 from ...logging_config import logger
 
@@ -69,9 +70,27 @@ class InteractionAgentRuntime:
             transcript_before = self._load_conversation_transcript()
             self.conversation_log.record_user_message(user_message)
 
+            try:
+                retrieval = await retrieve_agents(user_message)
+            except Exception as exc:
+                logger.error(
+                    "Execution Agent retrieval failed",
+                    extra={"error": str(exc)},
+                )
+                retrieval = AgentRetrievalResult(
+                    candidates=[],
+                    complete=False,
+                    reason="retrieval_failed",
+                )
+
             system_prompt = build_system_prompt()
             messages = prepare_message_with_history(
-                user_message, transcript_before, message_type="user"
+                user_message,
+                transcript_before,
+                message_type="user",
+                active_agents=retrieval.candidates,
+                lookup_complete=retrieval.complete,
+                lookup_reason=retrieval.reason,
             )
 
             logger.info("Processing user message through interaction agent")
@@ -97,7 +116,11 @@ class InteractionAgentRuntime:
             )
 
     # Handle incoming messages from execution agents and generate appropriate responses
-    async def handle_agent_message(self, agent_message: str) -> InteractionResult:
+    async def handle_agent_message(
+        self,
+        agent_message: str,
+        originating_agent_names: Optional[List[str]] = None,
+    ) -> InteractionResult:
         """Process a status update emitted by an execution agent."""
 
         try:
@@ -106,7 +129,10 @@ class InteractionAgentRuntime:
 
             system_prompt = build_system_prompt()
             messages = prepare_message_with_history(
-                agent_message, transcript_before, message_type="agent"
+                agent_message,
+                transcript_before,
+                message_type="agent",
+                originating_agent_names=originating_agent_names,
             )
 
             logger.info("Processing execution agent results")
