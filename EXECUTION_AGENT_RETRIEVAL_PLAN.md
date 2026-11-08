@@ -1,0 +1,117 @@
+# Plan: Bounded Execution Agent Retrieval (MVP)
+
+## Goal
+
+The Interaction Agent currently receives the full Execution Agent roster on every request. Replace that unbounded prompt content with at most five relevant agents, so the Interaction Agent can reuse persistent agents without requiring the full roster in context.
+
+The MVP combines exact matching on agent names with semantic retrieval over short agent profiles. Keep the roster authoritative, preserve existing routing behavior when retrieval is unavailable, and make incomplete retrieval explicit so it cannot be mistaken for proof that no matching agent exists.
+
+## MVP Scope
+
+- Candidate limit: **5 agents** per user turn.
+- Exact matching: normalized whole-name matches against the authoritative roster. Do not add NER, fuzzy matching, alias extraction, or configurable field registries.
+- Semantic matching: embed a bounded profile consisting of the agent name and a capped excerpt of its original delegated instruction. Do not use an LLM to extract structured profiles or embed full logs, responses, or tool payloads.
+- Profile lifecycle: create or update a profile when an agent is created; lazily backfill an existing agent from its recorded instruction when first needed. Keep only the profile data needed for retrieval.
+- Embeddings: use one configured provider and model, selected before implementation. Do not build a provider abstraction or vector database. Scan compatible vectors in-process for the current roster size.
+- Degraded mode: if query embeddings or profile vectors are unavailable, include exact matches and recently active agents when available, and mark the lookup incomplete. The Interaction Agent must not claim there are no matching agents based on an incomplete lookup.
+- Privacy: query text and profile instruction text sent to the embedding provider leave the machine. Document this, the selected model, configuration, and relevant provider retention/cost considerations before enabling the feature.
+
+### Out of scope
+
+LLM-based profile extraction, full-history backfill jobs, `search_agents` tool, fuzzy name matching, NER, pronoun resolution, recency-based ranking beyond degraded fallback, vector databases/indexes, configurable matching fields, model-backed routing A/B tests, and support for multiple embedding providers.
+
+## Stacked PR Workflow
+
+Keep the implementation reviewable as a stack: each feature PR targets its immediate predecessor, and an aggregate PR targets `main` and contains the complete change.
+
+```text
+main
+  -> feature/00-plan
+  -> feature/01-profiles
+  -> feature/02-embeddings
+  -> feature/03-retrieval
+  -> feature/04-prompt
+  -> feature/05-evaluation
+  -> feature/final
+```
+
+- Keep each PR focused on its branch’s scope and include its targeted tests.
+- Keep the aggregate branch synchronized with the latest stack tip so its PR shows the complete feature.
+- Leave PRs open and do not merge or close them before the presentation without approval. Do not rewrite shared history or force-push without authorization.
+- If an earlier branch changes, propagate the change through descendants and verify each PR still has the intended base and diff.
+
+## Feature PRs
+
+### 1. Agent Profiles
+
+Add a small retrieval-profile store using the repository’s existing persistence conventions. Key profiles by the existing agent name; the roster remains authoritative. Store the name, a bounded excerpt of the original delegated instruction, and last-active time if an existing source provides it. Use one fixed excerpt limit and deterministic truncation; do not add a summarization model.
+
+- Create/update the profile when an Execution Agent is created, without blocking its execution.
+- Lazily populate profiles for older roster entries from their existing recorded instruction when lookup encounters a missing profile. Do not introduce a separate bulk backfill service.
+- Clear derived profiles together with the existing chat-history state.
+- **Tests:** profile persistence and identity, lazy backfill, missing source data, clearing, and profile-update failure not blocking execution.
+
+### 2. Embedding Client
+
+Add one async embeddings client using the repository’s existing HTTP and configuration patterns. Use OpenRouter's embeddings endpoint with `openai/text-embedding-3-small` by default, configurable via `EXECUTION_AGENT_EMBEDDING_MODEL` and the existing `OPENROUTER_API_KEY`.
+
+- Embed profile text during profile creation/update and embed only the latest user message for a lookup.
+- Use a short bounded timeout (target: 2 seconds) and no retry on the user-turn critical path. On failure, return an explicit unavailable result for degraded retrieval rather than blocking agent execution.
+- Persist profile vectors with the model identifier and dimensions. Re-embed profiles when their source text or configured model changes. Never compare vectors from different models or dimensions.
+- Document that query and profile text are sent to OpenRouter, plus configuration and current-provider pricing/retention considerations.
+- **Tests:** valid and malformed responses, timeout/provider errors, model and dimension compatibility, profile re-embedding, and non-blocking profile updates.
+
+### 3. Hybrid Retrieval
+
+Implement a focused retrieval service that scans the current roster and compatible profile vectors.
+
+- Return up to five candidates. Put exact normalized whole-agent-name matches first, then rank remaining candidates by cosine similarity with deterministic tie-breaking.
+- Do not add an unvalidated similarity threshold. Retrieval ranks candidates; the Interaction Agent decides whether an agent is appropriate.
+- If embedding lookup is unavailable, return exact matches and recently active agents when available, with an explicit incomplete/degraded status. If no such fallback data is available, return an empty but explicitly incomplete result.
+- Do not represent an incomplete result as a definitive no-match.
+- **Tests:** exact and semantic matches, deterministic ranking and limit, incompatible/missing vectors, provider failure, and degraded fallback status.
+
+### 4. Bounded Interaction Prompt
+
+Use the retrieval service to replace full-roster injection on user turns with at most five candidates and the lookup’s completeness status.
+
+- Preserve originating agent names explicitly on agent-result turns, including multi-agent and scheduled results; do not substitute a roster lookup for known origins.
+- Watcher notifications without an originating Execution Agent must not receive the full roster.
+- Update the Interaction Agent instructions to reuse a relevant candidate, preserve its existing name, and avoid asserting that no agent exists when retrieval is incomplete. Keep creation and clarification decisions with the Interaction Agent.
+- Do not add a separate `search_agents` tool in this MVP.
+- **Tests:** bounded user-turn candidates, incomplete lookup guidance, agent-result origin names, multi-agent/scheduled results, watcher notifications, and existing execution/trigger behavior.
+
+### 5. Evaluation
+
+Add a small, reproducible offline evaluation rather than a model-backed A/B harness.
+
+- Use approximately 50 synthetic agents and 30 labeled queries covering exact reuse, semantic paraphrases, multiple relevant agents, new-agent cases, and ambiguous or unrelated queries.
+- Use fixed fake embeddings for deterministic tests; provide an optional live-provider command only if it can run on synthetic data and fake execution tools.
+- Report recall@5 for labeled reuse cases and candidate/prompt size against the current full-roster baseline. Include representative failures and confirm that incomplete retrieval is surfaced.
+- Set the acceptance threshold before tuning; target at least 90% recall@5 on the fixture set. Keep the dataset small and avoid repeated model-backed evaluation.
+- **Tests:** reproducible fixture calculations, multiple expected agents, no-match/ambiguous cases, top-five limit, and baseline-size comparison.
+
+## Integration Points
+
+Confirm these against the current implementation as each PR is built:
+
+- `server/services/execution/roster.py`: authoritative agent names.
+- `server/services/execution/log_store.py`: source for lazy profile backfill; do not index or embed raw logs.
+- `server/agents/interaction_agent/agent.py` and `runtime.py`: candidate injection and explicit degraded status.
+- `server/agents/execution_agent/batch_manager.py` and `server/services/trigger_scheduler.py`: profile updates and structured origin names.
+- `server/config.py` and the existing provider client: embedding configuration and HTTP conventions.
+- `server/routes/chat.py`: clear derived profile data with existing history state.
+- `README.md`: provider configuration and privacy note.
+
+## MVP Completion Criteria
+
+- User-turn prompts contain no more than five retrieved candidates, not the full roster.
+- Exact and semantic retrieval work with deterministic tests and compatible vectors only.
+- Existing agents can be lazily backfilled without a separate migration/backfill operation.
+- Provider/profile failures do not block Execution Agent work and cannot silently become a definitive no-match.
+- Known agent origins remain available on agent-result turns; watcher notifications do not receive the roster.
+- Offline evaluation reports recall@5 and prompt-size reduction against the full-roster baseline.
+
+## Follow-up
+
+Consider aliases, recency ranking, pronoun resolution, a dedicated on-demand search tool, broader datasets, or model-backed routing evaluations only after the MVP demonstrates a retrieval gap that warrants them.
