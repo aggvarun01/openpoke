@@ -86,6 +86,15 @@ feature if that text should remain local. Provider availability, applicable data
 retention, and current pricing depend on OpenRouter and its selected provider;
 check their current policies and model pricing before use.
 
+Run the deterministic offline retrieval evaluation with:
+
+```bash
+python -m server.evaluation.execution_agent_retrieval
+```
+
+It uses synthetic agents and fake embeddings; it does not call an embedding or
+chat provider.
+
 ## Project Layout
 - `server/` – FastAPI application and agents
 - `web/` – Next.js app
