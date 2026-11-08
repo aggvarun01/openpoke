@@ -12,6 +12,7 @@ The MVP combines exact matching on agent names with semantic retrieval over shor
 - Exact matching: normalized whole-name matches against the authoritative roster. Do not add NER, fuzzy matching, alias extraction, or configurable field registries.
 - Semantic matching: embed a bounded profile consisting of the agent name and a capped excerpt of its original delegated instruction. Do not use an LLM to extract structured profiles or embed full logs, responses, or tool payloads.
 - Profile lifecycle: create or update a profile when an agent is created; lazily backfill an existing agent from its recorded instruction when first needed. Keep only the profile data needed for retrieval.
+- Existing-agent migration limitation: agents already in the roster before this feature have no stored vector initially. Lazy backfill makes their name and instruction available for exact-name matching and degraded recent-agent fallback, but does not embed them. They become semantically searchable after a later instruction updates their profile and generates a vector. Do not add a bulk backfill job in the MVP.
 - Embeddings: use one configured provider and model, selected before implementation. Do not build a provider abstraction or vector database. Scan compatible vectors in-process for the current roster size.
 - Degraded mode: if query embeddings or profile vectors are unavailable, include exact matches and recently active agents when available, and mark the lookup incomplete. The Interaction Agent must not claim there are no matching agents based on an incomplete lookup.
 - Privacy: query text and profile instruction text sent to the embedding provider leave the machine. Document this, the selected model, configuration, and relevant provider retention/cost considerations before enabling the feature.
@@ -47,7 +48,7 @@ main
 Add a small retrieval-profile store using the repository’s existing persistence conventions. Key profiles by the existing agent name; the roster remains authoritative. Store the name, a bounded excerpt of the original delegated instruction, and last-active time if an existing source provides it. Use one fixed excerpt limit and deterministic truncation; do not add a summarization model.
 
 - Create/update the profile when an Execution Agent is created, without blocking its execution.
-- Lazily populate profiles for older roster entries from their existing recorded instruction when lookup encounters a missing profile. Do not introduce a separate bulk backfill service.
+- Lazily populate profiles for agents already in the roster before this feature from their latest recorded instruction when lookup encounters a missing profile. These lazily backfilled profiles have no embedding at first: exact name matching and degraded recent-agent fallback remain available, and semantic retrieval becomes available after the agent next receives an instruction. Do not introduce a separate bulk backfill service.
 - Clear derived profiles together with the existing chat-history state.
 - **Tests:** profile persistence and identity, lazy backfill, missing source data, clearing, and profile-update failure not blocking execution.
 
@@ -108,6 +109,7 @@ Confirm these against the current implementation as each PR is built:
 - User-turn prompts contain no more than five retrieved candidates, not the full roster.
 - Exact and semantic retrieval work with deterministic tests and compatible vectors only.
 - Existing agents can be lazily backfilled without a separate migration/backfill operation.
+- Agents already in the roster before this feature can be used by exact-name or degraded fallback retrieval immediately after lazy profile backfill; semantic retrieval for them is deferred until their next profile update. This is an intentional MVP limitation, not a release blocker.
 - Provider/profile failures do not block Execution Agent work and cannot silently become a definitive no-match.
 - Known agent origins remain available on agent-result turns; watcher notifications do not receive the roster.
 - Offline evaluation reports recall@5 and prompt-size reduction against the full-roster baseline.
