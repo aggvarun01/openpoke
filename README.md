@@ -73,6 +73,58 @@ OpenPoke is a simplified, open-source take on [Interaction Company’s](https://
 
 The web app proxies API calls to the Python server using the values in `.env`, so keeping both processes running is required for end-to-end flows.
 
+### Execution Agent retrieval
+
+Execution Agent retrieval uses OpenRouter's embeddings endpoint with
+`openai/text-embedding-3-small` by default. Override the model with
+`EXECUTION_AGENT_EMBEDDING_MODEL` if needed. The existing `OPENROUTER_API_KEY`
+is used; no additional provider credential is required.
+
+Retrieval sends the latest user message and each bounded Execution Agent profile
+(agent name and delegated-instruction excerpt) to OpenRouter. Do not enable this
+feature if that text should remain local. Provider availability, applicable data
+retention, and current pricing depend on OpenRouter and its selected provider;
+check their current policies and model pricing before use.
+
+The synthetic benchmark contains 30 hand-authored agent profiles and 33 labeled
+requests. It includes exact-name and paraphrase reuse, multi-agent requests,
+ambiguous/new tasks, and output-dependent follow-ups (which are reported but
+excluded from retrieval scoring because the current index does not include
+execution outputs).
+
+Run the deterministic offline regression evaluation with:
+
+```bash
+python -m server.evaluation.execution_agent_retrieval
+```
+
+The offline run uses deterministic feature-hash vectors; it makes no provider
+calls and is not a measure of semantic embedding quality. It reports recall@5,
+MRR, and precision@5 for hybrid retrieval and exact-name/keyword baselines, plus
+prompt-character comparisons. These are retrieval metrics, not measurements of
+whether the Interaction Agent chooses the right reuse/create/clarify action.
+
+To evaluate the configured embedding model against the same synthetic-only
+benchmark, run:
+
+```bash
+python -m server.evaluation.execution_agent_retrieval --live-embeddings \
+  --results-file server/evaluation/execution_agent_retrieval_results.json
+```
+
+The checked-in compressed cache contains the vectors for the current synthetic
+dataset, generated with `openai/text-embedding-3-small`; the command therefore
+reproduces the recorded result without a key or provider calls. If the dataset
+or model changes, uncached texts are sent to OpenRouter and may incur cost.
+Updated cache vectors can be submitted with the results. The cache contains
+only vectors derived from synthetic data, not API keys or raw text. The command
+makes no chat-model calls and invokes no execution tools. The precomputed
+results are in `server/evaluation/execution_agent_retrieval_results.json`.
+
+The recorded live-embedding result achieved 100% recall@5 (30/30 relevant
+agent labels), MRR 1.0, versus 90% recall@5 and MRR 0.84 for keyword matching.
+This is a small synthetic benchmark result, not a production-quality claim.
+
 ## Project Layout
 - `server/` – FastAPI application and agents
 - `web/` – Next.js app
