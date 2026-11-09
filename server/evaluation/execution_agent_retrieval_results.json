@@ -1,0 +1,56 @@
+{
+  "action_counts": {
+    "clarify": 2,
+    "create_new": 2,
+    "requires_context": 4,
+    "reuse": 20,
+    "reuse_multiple": 5
+  },
+  "agents": 30,
+  "average_candidate_count": 5.0,
+  "average_full_roster_prompt_characters_names_only": 2788.060606060606,
+  "average_full_roster_prompt_characters_with_profiles": 5207.060606060606,
+  "average_prompt_characters_with_retrieved_candidates": 1041.2727272727273,
+  "benchmark": "OpenPoke synthetic Execution Agent routing benchmark",
+  "benchmark_version": 1,
+  "candidate_limit": 5,
+  "embedding_cache": {
+    "cached_vectors": 63,
+    "provider_fetches": 0
+  },
+  "embedding_mode": "real_embeddings",
+  "embedding_model": "openai/text-embedding-3-small",
+  "exact_name_baseline": {
+    "labeled_reuse_queries": 25,
+    "mean_precision_at_5": 0.08,
+    "mean_reciprocal_rank": 0.4,
+    "recall_at_5": 0.3333333333333333,
+    "relevant_agent_labels": 30,
+    "retrieved_relevant_agents_at_5": 10
+  },
+  "hybrid": {
+    "labeled_reuse_queries": 25,
+    "mean_precision_at_5": 0.24,
+    "mean_reciprocal_rank": 1.0,
+    "recall_at_5": 1.0,
+    "relevant_agent_labels": 30,
+    "retrieved_relevant_agents_at_5": 30
+  },
+  "keyword_baseline": {
+    "labeled_reuse_queries": 25,
+    "mean_precision_at_5": 0.21600000000000003,
+    "mean_reciprocal_rank": 0.84,
+    "recall_at_5": 0.9,
+    "relevant_agent_labels": 30,
+    "retrieved_relevant_agents_at_5": 27
+  },
+  "output_dependent_cases_excluded": 4,
+  "passed": true,
+  "prompt_character_reduction_vs_full_profiles": 0.8000267701780217,
+  "prompt_character_reduction_vs_names_only_roster": 0.6265243571071453,
+  "provider_calls_use_synthetic_data_only": true,
+  "quality_threshold": 0.9,
+  "queries": 33,
+  "retrieval_failures": [],
+  "routing_decisions_measured": false
+}

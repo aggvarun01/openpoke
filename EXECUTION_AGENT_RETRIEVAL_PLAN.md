@@ -84,13 +84,18 @@ Use the retrieval service to replace full-roster injection on user turns with at
 
 ### 5. Evaluation
 
-Add a small, reproducible offline evaluation rather than a model-backed A/B harness.
+Create a reproducible synthetic benchmark whose labels are authored independently of the retrieval implementation. Keep the dataset inspectable and include its scope and limitations in the evaluation output.
 
-- Use approximately 50 synthetic agents and 30 labeled queries covering exact reuse, semantic paraphrases, multiple relevant agents, new-agent cases, and ambiguous or unrelated queries.
-- Use fixed fake embeddings for deterministic tests; provide an optional live-provider command only if it can run on synthetic data and fake execution tools.
-- Report recall@5 for labeled reuse cases and candidate/prompt size against the current full-roster baseline. Include representative failures and confirm that incomplete retrieval is surfaced.
-- Set the acceptance threshold before tuning; target at least 90% recall@5 on the fixture set. Keep the dataset small and avoid repeated model-backed evaluation.
-- **Tests:** reproducible fixture calculations, multiple expected agents, no-match/ambiguous cases, top-five limit, and baseline-size comparison.
+- Store synthetic agent IDs, names, original delegated instructions, user queries, expected action, and relevant agent IDs in `server/evaluation/execution_agent_retrieval_benchmark.json`.
+- Cover exact-name reuse, paraphrases, multiple relevant agents, genuinely new tasks, ambiguous requests, and follow-ups whose answers depend on execution outputs.
+- Score recall@5, mean reciprocal rank, and mean precision@5 for labeled reuse cases. Compare hybrid retrieval against exact-name-only and keyword-overlap baselines; report misses and action/category counts.
+- Treat ambiguous/new-task cases as routing evaluation inputs, not evidence that a ranked retrieval list can itself determine whether to create an agent. Exclude execution-output-dependent follow-ups from retrieval scores because this MVP indexes names and original instructions, not later outputs; report their count explicitly.
+- This benchmark measures retrieval, not whether the Interaction Agent makes the right reuse/create/clarify decision from candidates. Do not claim end-to-end routing accuracy from these metrics; assess model decisions separately with controlled prompts and fake execution tools before making that claim.
+- Keep the default offline run deterministic and provider-free. Its feature-hash vectors are a regression proxy only, not a semantic embedding model or evidence of real-world recall.
+- Provide an opt-in real-embedding evaluation using only synthetic benchmark records and queries. Check in a compressed embedding cache keyed by model and text hash so the reported results can be reproduced without provider access or repeat charges; the cache contains only synthetic-data vectors, never credentials or raw text. Missing vectors may be fetched with the configured provider and added to the cache. Record cache/provider-fetch counts, model, and a predeclared **90% recall@5 target** in the output artifact. Do not make chat-model calls or invoke real execution tools.
+- Check in the current reproducible score output at `server/evaluation/execution_agent_retrieval_results.json`; rerunning with `--live-embeddings --results-file <path>` should use cached vectors when available and refresh the requested result file.
+- Measure serialized prompt characters using the same prompt renderer and same profile fields for both retrieved candidates and a full-profile-roster baseline. Also report the names-only roster baseline to make comparison to the prior prompt payload explicit. Character counts are a size proxy, not tokenizer-accurate token savings.
+- **Tests:** dataset ID/label integrity, reproducible hash-vector results, cached live-vector results without provider calls, cache format/model/text-hash behavior, multi-label cases, output-dependent exclusions, candidate cap, baseline metrics, and prompt-size comparison.
 
 ## Integration Points
 

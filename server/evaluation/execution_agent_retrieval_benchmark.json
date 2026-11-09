@@ -1,0 +1,436 @@
+{
+  "metadata": {
+    "name": "OpenPoke synthetic Execution Agent routing benchmark",
+    "version": 1,
+    "description": "Hand-authored synthetic agent names, delegated instructions, user requests, and routing labels. No real user data.",
+    "labeling": "Relevant agent IDs and expected actions are specified independently of evaluator ranking code.",
+    "limitations": [
+      "Labels are hand-authored by one evaluator and have not been independently reviewed.",
+      "The offline hash-vector mode is a deterministic regression proxy, not a semantic embedding model.",
+      "The benchmark tests retrieval from agent names and original delegated instructions, not later execution outputs.",
+      "Live-provider scores on this small synthetic set do not establish production performance."
+    ]
+  },
+  "agents": [
+    {
+      "id": "email-alice-lunch",
+      "name": "Email to Alice",
+      "instruction": "Coordinate lunch plans with Alice, including invitations, availability, replies, and follow-up."
+    },
+    {
+      "id": "email-bob-project",
+      "name": "Bob Project Updates",
+      "instruction": "Manage project correspondence with Bob about delivery milestones, decisions, and follow-up."
+    },
+    {
+      "id": "email-dana-recruiting",
+      "name": "Dana Recruiting Emails",
+      "instruction": "Handle email exchanges with Dana about recruiting interviews and candidate feedback."
+    },
+    {
+      "id": "reminder-medication",
+      "name": "Medication Reminders",
+      "instruction": "Create and manage recurring reminders for taking medication."
+    },
+    {
+      "id": "reminder-recycling",
+      "name": "Recycling Pickup Alerts",
+      "instruction": "Track municipal recycling pickup dates and recurring curbside reminders."
+    },
+    {
+      "id": "reminder-weekly-report",
+      "name": "Weekly Status Report",
+      "instruction": "Schedule reminders to prepare and send the recurring weekly status report."
+    },
+    {
+      "id": "flight-seattle-conf",
+      "name": "Seattle Conference Flights",
+      "instruction": "Find and manage flights to Seattle for work conferences, including seat and itinerary details."
+    },
+    {
+      "id": "flight-new-york-family",
+      "name": "New York Family Flights",
+      "instruction": "Compare flights to New York for family visits, including dates, baggage, and booking details."
+    },
+    {
+      "id": "flight-japan-holiday",
+      "name": "Japan Holiday Flights",
+      "instruction": "Plan flights to Japan for vacation, tracking fare options and travel dates."
+    },
+    {
+      "id": "restaurant-tokyo-sushi",
+      "name": "Tokyo Sushi Reservations",
+      "instruction": "Find sushi restaurants in Tokyo and manage reservation details."
+    },
+    {
+      "id": "restaurant-anniversary",
+      "name": "Anniversary Dinner",
+      "instruction": "Find and reserve a restaurant for anniversary dinners, considering atmosphere and dietary preferences."
+    },
+    {
+      "id": "restaurant-team-lunch",
+      "name": "Team Lunch Plans",
+      "instruction": "Arrange team lunches, restaurant choices, group availability, and reservations."
+    },
+    {
+      "id": "budget-household",
+      "name": "Household Budget",
+      "instruction": "Track household spending and monthly budgets across groceries, utilities, and subscriptions."
+    },
+    {
+      "id": "budget-project",
+      "name": "Project Cost Forecast",
+      "instruction": "Monitor project budgets, forecast costs, and flag overspending."
+    },
+    {
+      "id": "budget-japan-trip",
+      "name": "Japan Trip Spending",
+      "instruction": "Track vacation spending and daily costs for the Japan trip."
+    },
+    {
+      "id": "meeting-team-planning",
+      "name": "Team Planning Meetings",
+      "instruction": "Coordinate team planning meetings, availability, calendar invites, and agendas."
+    },
+    {
+      "id": "meeting-candidate-interview",
+      "name": "Candidate Interview Scheduling",
+      "instruction": "Schedule candidate interviews and coordinate interviewer calendars."
+    },
+    {
+      "id": "meeting-dentist",
+      "name": "Dentist Appointments",
+      "instruction": "Manage dentist appointments, reminders, rescheduling, and calendar details."
+    },
+    {
+      "id": "code-pr-review",
+      "name": "Pull Request Review",
+      "instruction": "Review software pull requests for correctness and maintainability, and summarize findings."
+    },
+    {
+      "id": "code-release-deploy",
+      "name": "Release and Deployment",
+      "instruction": "Coordinate software releases and deployments, including rollout status and checks."
+    },
+    {
+      "id": "code-production-bug",
+      "name": "Production Bug Triage",
+      "instruction": "Investigate production bugs, reproduce reports, and coordinate fixes."
+    },
+    {
+      "id": "invoice-vendor-renewals",
+      "name": "Vendor Invoice Renewals",
+      "instruction": "Review vendor invoices and subscription renewals, verify amounts, and track due dates."
+    },
+    {
+      "id": "invoice-expenses",
+      "name": "Expense Reimbursements",
+      "instruction": "Organize employee expense receipts and prepare reimbursement submissions."
+    },
+    {
+      "id": "invoice-utilities",
+      "name": "Utility Bill Tracking",
+      "instruction": "Track household utility bills, invoices, payment dates, and billing discrepancies."
+    },
+    {
+      "id": "workout-strength",
+      "name": "Strength Training Plan",
+      "instruction": "Build and track gym-based strength training plans and progressive overload."
+    },
+    {
+      "id": "workout-running",
+      "name": "10K Running Training",
+      "instruction": "Plan running workouts and training schedules for a 10K race."
+    },
+    {
+      "id": "workout-mobility",
+      "name": "Mobility and Stretching",
+      "instruction": "Create short mobility and stretching routines to reduce stiffness."
+    },
+    {
+      "id": "itinerary-kyoto",
+      "name": "Kyoto Holiday Planner",
+      "instruction": "Plan a Kyoto holiday itinerary, neighborhoods, attractions, and hotel stays."
+    },
+    {
+      "id": "itinerary-seattle-conf",
+      "name": "Seattle Conference Itinerary",
+      "instruction": "Organize Seattle conference travel itinerary, hotel, and ground transport."
+    },
+    {
+      "id": "itinerary-nyc-weekend",
+      "name": "New York Weekend Plans",
+      "instruction": "Plan a New York weekend itinerary with activities, transit, and places to stay."
+    }
+  ],
+  "queries": [
+    {
+      "id": "exact-alice",
+      "query": "Ask Email to Alice whether she is free for lunch tomorrow.",
+      "expected_action": "reuse",
+      "category": "exact_name",
+      "relevant_agent_ids": ["email-alice-lunch"],
+      "scope": "in_scope"
+    },
+    {
+      "id": "exact-bob",
+      "query": "Use Bob Project Updates and ask if the milestone is still on track.",
+      "expected_action": "reuse",
+      "category": "exact_name",
+      "relevant_agent_ids": ["email-bob-project"],
+      "scope": "in_scope"
+    },
+    {
+      "id": "exact-dana",
+      "query": "Follow up with Dana Recruiting Emails about the interview feedback.",
+      "expected_action": "reuse",
+      "category": "exact_name",
+      "relevant_agent_ids": ["email-dana-recruiting"],
+      "scope": "in_scope"
+    },
+    {
+      "id": "exact-medication",
+      "query": "Change the time on Medication Reminders to 8am.",
+      "expected_action": "reuse",
+      "category": "exact_name",
+      "relevant_agent_ids": ["reminder-medication"],
+      "scope": "in_scope"
+    },
+    {
+      "id": "exact-seattle-flight",
+      "query": "Check Seattle Conference Flights for an earlier return.",
+      "expected_action": "reuse",
+      "category": "exact_name",
+      "relevant_agent_ids": ["flight-seattle-conf"],
+      "scope": "in_scope"
+    },
+    {
+      "id": "exact-tokyo-sushi",
+      "query": "Continue with Tokyo Sushi Reservations and look for Friday.",
+      "expected_action": "reuse",
+      "category": "exact_name",
+      "relevant_agent_ids": ["restaurant-tokyo-sushi"],
+      "scope": "in_scope"
+    },
+    {
+      "id": "exact-project-budget",
+      "query": "Ask Project Cost Forecast to update the estimate.",
+      "expected_action": "reuse",
+      "category": "exact_name",
+      "relevant_agent_ids": ["budget-project"],
+      "scope": "in_scope"
+    },
+    {
+      "id": "exact-team-meeting",
+      "query": "Open Team Planning Meetings and move the planning session.",
+      "expected_action": "reuse",
+      "category": "exact_name",
+      "relevant_agent_ids": ["meeting-team-planning"],
+      "scope": "in_scope"
+    },
+    {
+      "id": "exact-pr",
+      "query": "Have Pull Request Review look at this diff.",
+      "expected_action": "reuse",
+      "category": "exact_name",
+      "relevant_agent_ids": ["code-pr-review"],
+      "scope": "in_scope"
+    },
+    {
+      "id": "exact-vendor-invoice",
+      "query": "Use Vendor Invoice Renewals to check the latest bill.",
+      "expected_action": "reuse",
+      "category": "exact_name",
+      "relevant_agent_ids": ["invoice-vendor-renewals"],
+      "scope": "in_scope"
+    },
+    {
+      "id": "paraphrase-alice",
+      "query": "Has Alice gotten back to us about grabbing food tomorrow?",
+      "expected_action": "reuse",
+      "category": "instruction_paraphrase",
+      "relevant_agent_ids": ["email-alice-lunch"],
+      "scope": "in_scope"
+    },
+    {
+      "id": "paraphrase-recycling",
+      "query": "When should I put the blue bin out next?",
+      "expected_action": "reuse",
+      "category": "instruction_paraphrase",
+      "relevant_agent_ids": ["reminder-recycling"],
+      "scope": "in_scope"
+    },
+    {
+      "id": "paraphrase-family-flight",
+      "query": "Find a cheaper way to get to see my family in New York, with one checked bag.",
+      "expected_action": "reuse",
+      "category": "instruction_paraphrase",
+      "relevant_agent_ids": ["flight-new-york-family"],
+      "scope": "in_scope"
+    },
+    {
+      "id": "paraphrase-anniversary",
+      "query": "Book somewhere intimate for our anniversary that can handle a dairy-free meal.",
+      "expected_action": "reuse",
+      "category": "instruction_paraphrase",
+      "relevant_agent_ids": ["restaurant-anniversary"],
+      "scope": "in_scope"
+    },
+    {
+      "id": "paraphrase-household-budget",
+      "query": "Show me how much we spent at home this month and where we can cut back.",
+      "expected_action": "reuse",
+      "category": "instruction_paraphrase",
+      "relevant_agent_ids": ["budget-household"],
+      "scope": "in_scope"
+    },
+    {
+      "id": "paraphrase-interview",
+      "query": "Find a slot when all the interview panelists can meet the candidate.",
+      "expected_action": "reuse",
+      "category": "instruction_paraphrase",
+      "relevant_agent_ids": ["meeting-candidate-interview"],
+      "scope": "in_scope"
+    },
+    {
+      "id": "paraphrase-production-bug",
+      "query": "Users are hitting an outage; reproduce what is breaking and coordinate a fix.",
+      "expected_action": "reuse",
+      "category": "instruction_paraphrase",
+      "relevant_agent_ids": ["code-production-bug"],
+      "scope": "in_scope"
+    },
+    {
+      "id": "paraphrase-expenses",
+      "query": "Collect my work receipts so I can get paid back.",
+      "expected_action": "reuse",
+      "category": "instruction_paraphrase",
+      "relevant_agent_ids": ["invoice-expenses"],
+      "scope": "in_scope"
+    },
+    {
+      "id": "paraphrase-running",
+      "query": "Help me get ready to run ten kilometers without burning out.",
+      "expected_action": "reuse",
+      "category": "instruction_paraphrase",
+      "relevant_agent_ids": ["workout-running"],
+      "scope": "in_scope"
+    },
+    {
+      "id": "paraphrase-kyoto",
+      "query": "Map out a few days in Kyoto with sights and a good area to sleep.",
+      "expected_action": "reuse",
+      "category": "instruction_paraphrase",
+      "relevant_agent_ids": ["itinerary-kyoto"],
+      "scope": "in_scope"
+    },
+    {
+      "id": "multi-email-reminder",
+      "query": "Ask Alice about lunch and remind me to take my medication beforehand.",
+      "expected_action": "reuse_multiple",
+      "category": "multiple_relevant_agents",
+      "relevant_agent_ids": ["email-alice-lunch", "reminder-medication"],
+      "scope": "in_scope"
+    },
+    {
+      "id": "multi-flight-hotel",
+      "query": "Find a flight for the Seattle conference and arrange a hotel near the venue.",
+      "expected_action": "reuse_multiple",
+      "category": "multiple_relevant_agents",
+      "relevant_agent_ids": ["flight-seattle-conf", "itinerary-seattle-conf"],
+      "scope": "in_scope"
+    },
+    {
+      "id": "multi-pr-invoice",
+      "query": "Review the pull request and check whether the vendor invoice is due.",
+      "expected_action": "reuse_multiple",
+      "category": "multiple_relevant_agents",
+      "relevant_agent_ids": ["code-pr-review", "invoice-vendor-renewals"],
+      "scope": "in_scope"
+    },
+    {
+      "id": "multi-team-dinner",
+      "query": "Find a time for the team planning meeting, then reserve a place for lunch.",
+      "expected_action": "reuse_multiple",
+      "category": "multiple_relevant_agents",
+      "relevant_agent_ids": ["meeting-team-planning", "restaurant-team-lunch"],
+      "scope": "in_scope"
+    },
+    {
+      "id": "multi-japan",
+      "query": "Compare the Japan airfare and update what we have spent on the trip so far.",
+      "expected_action": "reuse_multiple",
+      "category": "multiple_relevant_agents",
+      "relevant_agent_ids": ["flight-japan-holiday", "budget-japan-trip"],
+      "scope": "in_scope"
+    },
+    {
+      "id": "ambiguous-pronoun",
+      "query": "Did they answer yet?",
+      "expected_action": "clarify",
+      "category": "ambiguous",
+      "relevant_agent_ids": [],
+      "scope": "in_scope"
+    },
+    {
+      "id": "ambiguous-usual",
+      "query": "Can you do the usual thing with that person again?",
+      "expected_action": "clarify",
+      "category": "ambiguous",
+      "relevant_agent_ids": [],
+      "scope": "in_scope"
+    },
+    {
+      "id": "new-gift",
+      "query": "Help me choose a thoughtful birthday gift for my sister.",
+      "expected_action": "create_new",
+      "category": "new_task",
+      "relevant_agent_ids": [],
+      "scope": "in_scope"
+    },
+    {
+      "id": "new-translation",
+      "query": "Translate this short note into Spanish.",
+      "expected_action": "create_new",
+      "category": "new_task",
+      "relevant_agent_ids": [],
+      "scope": "in_scope"
+    },
+    {
+      "id": "output-alice-date",
+      "query": "What date did she suggest?",
+      "expected_action": "requires_context",
+      "category": "execution_output_follow_up",
+      "relevant_agent_ids": [],
+      "contextual_agent_id": "email-alice-lunch",
+      "scope": "output_dependent"
+    },
+    {
+      "id": "output-seattle-hotel",
+      "query": "Which hotel did we settle on?",
+      "expected_action": "requires_context",
+      "category": "execution_output_follow_up",
+      "relevant_agent_ids": [],
+      "contextual_agent_id": "itinerary-seattle-conf",
+      "scope": "output_dependent"
+    },
+    {
+      "id": "output-invoice-amount",
+      "query": "How much was the charge on the invoice?",
+      "expected_action": "requires_context",
+      "category": "execution_output_follow_up",
+      "relevant_agent_ids": [],
+      "contextual_agent_id": "invoice-vendor-renewals",
+      "scope": "output_dependent"
+    },
+    {
+      "id": "output-workout-load",
+      "query": "What weight did I use last time?",
+      "expected_action": "requires_context",
+      "category": "execution_output_follow_up",
+      "relevant_agent_ids": [],
+      "contextual_agent_id": "workout-strength",
+      "scope": "output_dependent"
+    }
+  ]
+}
